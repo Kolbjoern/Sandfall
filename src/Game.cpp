@@ -2,6 +2,8 @@
 
 #include <SFML/Window/Event.hpp>
 
+#include <cstdlib>
+
 const int WINDOW_WIDTH = 1024;
 const int WINDOW_HEIGHT = 768;
 
@@ -39,7 +41,7 @@ void Game::init()
 			m_grid.push_back(r);
 		}
 	}
-
+	m_currentColor = sf::Color::Yellow;
 	m_loopTimer.init();
 	m_updateTimer = 0;
 }
@@ -89,29 +91,19 @@ void Game::update(float deltaTime)
 	}
 	m_updateTimer -= 0.016f;
 
-	int sand[WORLD_WIDTH * WORLD_HEIGHT] = {0};
+	int tracker[WORLD_WIDTH * WORLD_HEIGHT] = {};
 	for (unsigned int i = 0; i < m_grid.size(); i++) {
 		if (m_grid[i].getFillColor() == sf::Color::Yellow) {
-			if (sand[i] == 1) {
+			if (tracker[i] & 1) {
 				continue;
 			}
-
-			unsigned int below = i + WORLD_WIDTH;
-			if (below < m_grid.size() && m_grid[below].getFillColor() == sf::Color::Black) {
-				m_grid[below].setFillColor(sf::Color::Yellow);
-				m_grid[i].setFillColor(sf::Color::Black);
-				sand[below] = 1;
+			tracker[processSand(i)] |= 1;
+		}
+		else if (m_grid[i].getFillColor() == sf::Color::Blue) {
+			if (tracker[i] & 2) {
+				continue;
 			}
-			else if (below+1 < m_grid.size() && m_grid[below+1].getFillColor() == sf::Color::Black) {
-				m_grid[below+1].setFillColor(sf::Color::Yellow);
-				m_grid[i].setFillColor(sf::Color::Black);
-				sand[below+1] = 1;
-			}
-			else if (below-1 < m_grid.size() && m_grid[below-1].getFillColor() == sf::Color::Black) {
-				m_grid[below-1].setFillColor(sf::Color::Yellow);
-				m_grid[i].setFillColor(sf::Color::Black);
-				sand[below-1] = 1;
-			}
+			tracker[processWater(i)] |= 2;
 		}
 	}
 
@@ -122,10 +114,16 @@ void Game::update(float deltaTime)
 		unsigned int index = y * WORLD_WIDTH + x;
 
 		if (index >= 0 && index < m_grid.size()) {
-			m_grid[index].setFillColor(sf::Color::Yellow);
-			m_grid[index+1].setFillColor(sf::Color::Yellow);
-			m_grid[index-1].setFillColor(sf::Color::Yellow);
+			m_grid[index].setFillColor(m_currentColor);
 		}
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
+		m_currentColor = sf::Color::Yellow;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
+		m_currentColor = sf::Color::Blue;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
@@ -133,6 +131,64 @@ void Game::update(float deltaTime)
 			m_grid[i].setFillColor(sf::Color::Black);
 		}
 	}
+}
+
+int Game::processSand(int index)
+{
+	unsigned int below = index + WORLD_WIDTH;
+	if (changeColor(index, below, sf::Color::Yellow)) {
+		return below;
+	}
+	if (changeColor(index, below+1, sf::Color::Yellow)) {
+		return below+1;
+	}
+	if (changeColor(index, below-1, sf::Color::Yellow)) {
+		return below-1;
+	}
+	return 0;
+}
+
+int Game::processWater(int index)
+{
+	unsigned int below = index + WORLD_WIDTH;
+	if (changeColor(index, below, sf::Color::Blue)) {
+		return below;
+	}
+	if (changeColor(index, below+1, sf::Color::Blue)) {
+		return below+1;
+	}
+	if (changeColor(index, below-1, sf::Color::Blue)) {
+		return below-1;
+	}
+	if (changeColor(index, index-1, sf::Color::Blue)) {
+		return index-1;
+	}
+	if (changeColor(index, index+1, sf::Color::Blue)) {
+		return index+1;
+	}
+	return 0;
+}
+
+bool Game::changeColor(unsigned int index, unsigned int target, sf::Color color)
+{
+	if (isInsideGrid(target) && isAdjacent(index, target)) {
+		if (m_grid[target].getFillColor() == sf::Color::Black) {
+			m_grid[target].setFillColor(color);
+			m_grid[index].setFillColor(sf::Color::Black);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Game::isInsideGrid(unsigned int index)
+{
+	return index < m_grid.size() && index > 0;
+}
+
+bool Game::isAdjacent(int index, int target)
+{
+	return std::abs((index % WORLD_WIDTH) - (target % WORLD_WIDTH)) < 2;
 }
 
 void Game::render()
