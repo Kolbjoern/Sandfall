@@ -97,13 +97,13 @@ void Game::update(float deltaTime)
 			if (tracker[i] & 1) {
 				continue;
 			}
-			tracker[processSand(i)] |= 1;
+			processSand(i, tracker);
 		}
 		else if (m_grid[i].getFillColor() == sf::Color::Blue) {
 			if (tracker[i] & 2) {
 				continue;
 			}
-			tracker[processWater(i)] |= 2;
+			processWater(i, tracker);
 		}
 	}
 
@@ -133,40 +133,36 @@ void Game::update(float deltaTime)
 	}
 }
 
-int Game::processSand(int index)
+void Game::processSand(int index, int tracker[])
 {
-	unsigned int below = index + WORLD_WIDTH;
-	if (changeColor(index, below, sf::Color::Yellow)) {
-		return below;
+	if (changeColor(index, getDown(index), sf::Color::Yellow)) {
+		tracker[getDown(index)] |= 1;
 	}
-	if (changeColor(index, below+1, sf::Color::Yellow)) {
-		return below+1;
+	else if (changeColor(index, getDownRight(index), sf::Color::Yellow)) {
+		tracker[getDownRight(index)] |= 1;
 	}
-	if (changeColor(index, below-1, sf::Color::Yellow)) {
-		return below-1;
+	else if (changeColor(index, getDownLeft(index), sf::Color::Yellow)) {
+		tracker[getDownLeft(index)] |= 1;
 	}
-	return 0;
 }
 
-int Game::processWater(int index)
+void Game::processWater(int index, int tracker[])
 {
-	unsigned int below = index + WORLD_WIDTH;
-	if (changeColor(index, below, sf::Color::Blue)) {
-		return below;
+	if (changeColor(index, getDown(index), sf::Color::Blue)) {
+		tracker[getDown(index)] |= 2;
 	}
-	if (changeColor(index, below+1, sf::Color::Blue)) {
-		return below+1;
+	else if (changeColor(index, getDownRight(index), sf::Color::Blue)) {
+		tracker[getDownRight(index)] |= 2;
 	}
-	if (changeColor(index, below-1, sf::Color::Blue)) {
-		return below-1;
+	else if (changeColor(index, getDownLeft(index), sf::Color::Blue)) {
+		tracker[getDownLeft(index)] |= 2;
 	}
-	if (changeColor(index, index-1, sf::Color::Blue)) {
-		return index-1;
+	else if (changeColor(index, getLeft(index), sf::Color::Blue)) {
+		tracker[getLeft(index)] |= 2;
 	}
-	if (changeColor(index, index+1, sf::Color::Blue)) {
-		return index+1;
+	else if (changeColor(index, getRight(index), sf::Color::Blue)) {
+		tracker[getRight(index)] |= 2;
 	}
-	return 0;
 }
 
 bool Game::changeColor(unsigned int index, unsigned int target, sf::Color color)
@@ -179,6 +175,31 @@ bool Game::changeColor(unsigned int index, unsigned int target, sf::Color color)
 		}
 	}
 	return false;
+}
+
+int Game::getLeft(int index)
+{
+	return index - 1;
+}
+
+int Game::getRight(int index)
+{
+	return index + 1;
+}
+
+int Game::getDown(int index)
+{
+	return index + WORLD_WIDTH;
+}
+
+int Game::getDownLeft(int index)
+{
+	return index + WORLD_WIDTH - 1;
+}
+
+int Game::getDownRight(int index)
+{
+	return index + WORLD_WIDTH + 1;
 }
 
 bool Game::isInsideGrid(unsigned int index)

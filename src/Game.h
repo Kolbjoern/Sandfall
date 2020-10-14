@@ -14,9 +14,14 @@ private:
 	void init();
 	void handleInput();
 	void update(float deltaTime);
-	int processSand(int index);
-	int processWater(int index);
+	void processSand(int index, int tracker[]);
+	void processWater(int index, int tracker[]);
 	bool changeColor(unsigned int index, unsigned int target, sf::Color color);
+	int getLeft(int index);
+	int getRight(int index);
+	int getDown(int index);
+	int getDownLeft(int index);
+	int getDownRight(int index);
 	bool isInsideGrid(unsigned int index);
 	bool isAdjacent(int index, int target);
 	void render();
