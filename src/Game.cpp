@@ -36,12 +36,12 @@ void Game::init()
 		for (int x = 0; x < WORLD_WIDTH; x++) {
 			sf::RectangleShape r;
 			r.setPosition(x*(PIXEL_SIZE), y*(PIXEL_SIZE));
-			r.setFillColor(sf::Color::Black);
+			r.setFillColor(Color::Black);
 			r.setSize(sf::Vector2f(PIXEL_SIZE, PIXEL_SIZE));
 			m_grid.push_back(r);
 		}
 	}
-	m_currentColor = sf::Color::Yellow;
+	m_currentColor = Color::Yellow;
 	m_loopTimer.init();
 	m_updateTimer = 0;
 }
@@ -93,17 +93,23 @@ void Game::update(float deltaTime)
 
 	int tracker[WORLD_WIDTH * WORLD_HEIGHT] = {};
 	for (unsigned int i = 0; i < m_grid.size(); i++) {
-		if (m_grid[i].getFillColor() == sf::Color::Yellow) {
-			if (tracker[i] & 1) {
+		if (m_grid[i].getFillColor() == Color::Yellow) {
+			if (tracker[i] & ParticleType::Sand) {
 				continue;
 			}
 			processSand(i, tracker);
 		}
-		else if (m_grid[i].getFillColor() == sf::Color::Blue) {
-			if (tracker[i] & 2) {
+		else if (m_grid[i].getFillColor() == Color::Blue) {
+			if (tracker[i] & ParticleType::Water) {
 				continue;
 			}
 			processWater(i, tracker);
+		}
+		else if (m_grid[i].getFillColor() == Color::Gray) {
+			if (tracker[i] & ParticleType::Stone) {
+				continue;
+			}
+			processStone(i, tracker);
 		}
 	}
 
@@ -113,68 +119,91 @@ void Game::update(float deltaTime)
 		int y = p.y / PIXEL_SIZE;
 		unsigned int index = y * WORLD_WIDTH + x;
 
-		if (index >= 0 && index < m_grid.size()) {
+		if (index >= 0 && index < m_grid.size() && m_grid[index].getFillColor() == Color::Black) {
 			m_grid[index].setFillColor(m_currentColor);
 		}
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
-		m_currentColor = sf::Color::Yellow;
+		m_currentColor = Color::Yellow;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
-		m_currentColor = sf::Color::Blue;
+		m_currentColor = Color::Blue;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
+		m_currentColor = Color::White;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) {
+		m_currentColor = Color::Gray;
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
 		for (unsigned int i = 0; i < m_grid.size(); i++) {
-			m_grid[i].setFillColor(sf::Color::Black);
+			m_grid[i].setFillColor(Color::Black);
 		}
 	}
 }
 
 void Game::processSand(int index, int tracker[])
 {
-	if (changeColor(index, getDown(index), sf::Color::Yellow)) {
-		tracker[getDown(index)] |= 1;
+	if (process(index, getDown(index), tracker)) {
+		tracker[getDown(index)] |= ParticleType::Sand;
 	}
-	else if (changeColor(index, getDownRight(index), sf::Color::Yellow)) {
-		tracker[getDownRight(index)] |= 1;
+	else if (process(index, getDownRight(index), tracker)) {
+		tracker[getDownRight(index)] |= ParticleType::Sand;
 	}
-	else if (changeColor(index, getDownLeft(index), sf::Color::Yellow)) {
-		tracker[getDownLeft(index)] |= 1;
+	else if (process(index, getDownLeft(index), tracker)) {
+		tracker[getDownLeft(index)] |= ParticleType::Sand;
 	}
 }
 
 void Game::processWater(int index, int tracker[])
 {
-	if (changeColor(index, getDown(index), sf::Color::Blue)) {
-		tracker[getDown(index)] |= 2;
+	if (process(index, getDown(index), tracker)) {
+		tracker[getDown(index)] |= ParticleType::Water;
 	}
-	else if (changeColor(index, getDownRight(index), sf::Color::Blue)) {
-		tracker[getDownRight(index)] |= 2;
+	else if (process(index, getDownRight(index), tracker)) {
+		tracker[getDownRight(index)] |= ParticleType::Water;
 	}
-	else if (changeColor(index, getDownLeft(index), sf::Color::Blue)) {
-		tracker[getDownLeft(index)] |= 2;
+	else if (process(index, getDownLeft(index), tracker)) {
+		tracker[getDownLeft(index)] |= ParticleType::Water;
 	}
-	else if (changeColor(index, getLeft(index), sf::Color::Blue)) {
-		tracker[getLeft(index)] |= 2;
+	else if (process(index, getLeft(index), tracker)) {
+		tracker[getLeft(index)] |= ParticleType::Water;
 	}
-	else if (changeColor(index, getRight(index), sf::Color::Blue)) {
-		tracker[getRight(index)] |= 2;
+	else if (process(index, getRight(index), tracker)) {
+		tracker[getRight(index)] |= ParticleType::Water;
 	}
 }
 
-bool Game::changeColor(unsigned int index, unsigned int target, sf::Color color)
+void Game::processStone(int index, int tracker[])
+{
+	if (process(index, getDown(index), tracker)) {
+		tracker[getDown(index)] |= ParticleType::Stone;
+	}
+}
+
+bool Game::process(unsigned int index, unsigned int target, int tracker[])
 {
 	if (isInsideGrid(target) && isAdjacent(index, target)) {
-		if (m_grid[target].getFillColor() == sf::Color::Black) {
+		sf::Color color = m_grid[index].getFillColor();
+		if (m_grid[target].getFillColor() == Color::Black) {
 			m_grid[target].setFillColor(color);
-			m_grid[index].setFillColor(sf::Color::Black);
+			m_grid[index].setFillColor(Color::Black);
+			return true;
+		}
+		else if ((color == Color::Yellow || color == Color::Gray) 
+				&& m_grid[target].getFillColor() == Color::Blue) {
+			m_grid[target].setFillColor(color);
+			m_grid[index].setFillColor(Color::Blue);
+			processWater(index, tracker);
 			return true;
 		}
 	}
-	return false;
+	return false;	
 }
 
 int Game::getLeft(int index)

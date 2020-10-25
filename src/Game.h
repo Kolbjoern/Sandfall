@@ -4,6 +4,16 @@
 #include <SFML/Graphics/rectangleShape.hpp>
 
 #include "utils/LoopTimer.h"
+#include "common/Color.h"
+
+enum ParticleType : int
+{
+	Void = 0,
+	Sand = 1,
+	Water = 2,
+	Wall = 4,
+	Stone = 8
+};
 
 class Game
 {
@@ -16,7 +26,8 @@ private:
 	void update(float deltaTime);
 	void processSand(int index, int tracker[]);
 	void processWater(int index, int tracker[]);
-	bool changeColor(unsigned int index, unsigned int target, sf::Color color);
+	void processStone(int index, int tracker[]);
+	bool process(unsigned int index, unsigned int target, int tracker[]);
 	int getLeft(int index);
 	int getRight(int index);
 	int getDown(int index);
