@@ -7,10 +7,7 @@
 const int WINDOW_WIDTH = 1024;
 const int WINDOW_HEIGHT = 768;
 
-const int WORLD_WIDTH = 128;
-const int WORLD_HEIGHT = 96;
-
-const int PIXEL_SIZE = 8;
+const int PIXEL_SIZE = 4;
 
 const float FPS = 60.0f;
 
@@ -32,8 +29,11 @@ void Game::init()
 	m_window.create(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Sandfall");
 	m_window.setFramerateLimit(FPS);
 
-	for (int y = 0; y < WORLD_HEIGHT; y++) {
-		for (int x = 0; x < WORLD_WIDTH; x++) {
+	m_worldWidth = WINDOW_WIDTH / PIXEL_SIZE;
+	m_worldHeight = WINDOW_HEIGHT / PIXEL_SIZE;
+
+	for (int y = 0; y < m_worldHeight; y++) {
+		for (int x = 0; x < m_worldWidth; x++) {
 			sf::RectangleShape r;
 			r.setPosition(x*(PIXEL_SIZE), y*(PIXEL_SIZE));
 			r.setFillColor(Color::Black);
@@ -44,6 +44,7 @@ void Game::init()
 	m_currentColor = Color::Yellow;
 	m_loopTimer.init();
 	m_updateTimer = 0;
+	m_randomGenerator.seed(1337);
 }
 
 void Game::handleInput()
@@ -91,7 +92,7 @@ void Game::update(float deltaTime)
 	}
 	m_updateTimer -= 0.016f;
 
-	int tracker[WORLD_WIDTH * WORLD_HEIGHT] = {};
+	int tracker[m_worldWidth * m_worldHeight] = {};
 	for (unsigned int i = 0; i < m_grid.size(); i++) {
 		if (m_grid[i].getFillColor() == Color::Yellow) {
 			if (tracker[i] & ParticleType::Sand) {
@@ -114,13 +115,24 @@ void Game::update(float deltaTime)
 	}
 
 	if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-		sf::Vector2i p = sf::Mouse::getPosition(m_window);
-		int x = p.x / PIXEL_SIZE;
-		int y = p.y / PIXEL_SIZE;
-		unsigned int index = y * WORLD_WIDTH + x;
-
+		unsigned int index = getIndexAtMouse();
 		if (index >= 0 && index < m_grid.size() && m_grid[index].getFillColor() == Color::Black) {
-			m_grid[index].setFillColor(m_currentColor);
+			setColor(index, m_currentColor);
+			setColor(getLeft(index), m_currentColor);
+			setColor(getRight(index), m_currentColor);
+			setColor(getUp(index), m_currentColor);
+			setColor(getUpLeft(index), m_currentColor);
+			setColor(getUpRight(index), m_currentColor);
+			setColor(getDown(index), m_currentColor);
+			setColor(getDownLeft(index), m_currentColor);
+			setColor(getDownRight(index), m_currentColor);
+		}
+	}
+
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+		unsigned int index = getIndexAtMouse();
+		if (index >= 0 && index < m_grid.size()) {
+			m_grid[index].setFillColor(Color::Black);
 		}
 	}
 
@@ -152,11 +164,25 @@ void Game::processSand(int index, int tracker[])
 	if (process(index, getDown(index), tracker)) {
 		tracker[getDown(index)] |= ParticleType::Sand;
 	}
-	else if (process(index, getDownRight(index), tracker)) {
-		tracker[getDownRight(index)] |= ParticleType::Sand;
-	}
-	else if (process(index, getDownLeft(index), tracker)) {
-		tracker[getDownLeft(index)] |= ParticleType::Sand;
+	else {
+		std::uniform_int_distribution<int> rand(0, 1);
+		bool leftFirst = rand(m_randomGenerator) == 0;
+		if (leftFirst) {
+			if (process(index, getDownLeft(index), tracker)) {
+				tracker[getDownLeft(index)] |= ParticleType::Sand;
+			}
+			else if (process(index, getDownRight(index), tracker)) {
+				tracker[getDownRight(index)] |= ParticleType::Sand;
+			}
+		}
+		else {
+			if (process(index, getDownRight(index), tracker)) {
+				tracker[getDownRight(index)] |= ParticleType::Sand;
+			}
+			else if (process(index, getDownLeft(index), tracker)) {
+				tracker[getDownLeft(index)] |= ParticleType::Sand;
+			}
+		}
 	}
 }
 
@@ -165,17 +191,37 @@ void Game::processWater(int index, int tracker[])
 	if (process(index, getDown(index), tracker)) {
 		tracker[getDown(index)] |= ParticleType::Water;
 	}
-	else if (process(index, getDownRight(index), tracker)) {
-		tracker[getDownRight(index)] |= ParticleType::Water;
-	}
-	else if (process(index, getDownLeft(index), tracker)) {
-		tracker[getDownLeft(index)] |= ParticleType::Water;
-	}
-	else if (process(index, getLeft(index), tracker)) {
-		tracker[getLeft(index)] |= ParticleType::Water;
-	}
-	else if (process(index, getRight(index), tracker)) {
-		tracker[getRight(index)] |= ParticleType::Water;
+	else {
+		std::uniform_int_distribution<int> rand(0, 1);
+		bool leftFirst = rand(m_randomGenerator) == 0;
+		if (leftFirst) {
+			if (process(index, getDownLeft(index), tracker)) {
+				tracker[getDownLeft(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getDownRight(index), tracker)) {
+				tracker[getDownRight(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getLeft(index), tracker)) {
+				tracker[getLeft(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getRight(index), tracker)) {
+				tracker[getRight(index)] |= ParticleType::Water;
+			}
+		}
+		else {
+			if (process(index, getDownRight(index), tracker)) {
+				tracker[getDownRight(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getDownLeft(index), tracker)) {
+				tracker[getDownLeft(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getRight(index), tracker)) {
+				tracker[getRight(index)] |= ParticleType::Water;
+			}
+			else if (process(index, getLeft(index), tracker)) {
+				tracker[getLeft(index)] |= ParticleType::Water;
+			}
+		}
 	}
 }
 
@@ -206,6 +252,23 @@ bool Game::process(unsigned int index, unsigned int target, int tracker[])
 	return false;	
 }
 
+unsigned int Game::getIndexAtMouse()
+{
+	sf::Vector2i p = sf::Mouse::getPosition(m_window);
+	int x = p.x / PIXEL_SIZE;
+	int y = p.y / PIXEL_SIZE;
+	unsigned int index = y * m_worldWidth + x;
+
+	return index;
+}
+
+void Game::setColor(unsigned int index, sf::Color color)
+{
+	if (index >= 0 && index < m_grid.size() && m_grid[index].getFillColor() == Color::Black) {
+		m_grid[index].setFillColor(color);
+	}
+}
+
 int Game::getLeft(int index)
 {
 	return index - 1;
@@ -216,19 +279,34 @@ int Game::getRight(int index)
 	return index + 1;
 }
 
+int Game::getUp(int index)
+{
+	return index - m_worldWidth;
+}
+
+int Game::getUpLeft(int index)
+{
+	return index - m_worldWidth - 1;
+}
+
+int Game::getUpRight(int index)
+{
+	return index - m_worldWidth + 1;
+}
+
 int Game::getDown(int index)
 {
-	return index + WORLD_WIDTH;
+	return index + m_worldWidth;
 }
 
 int Game::getDownLeft(int index)
 {
-	return index + WORLD_WIDTH - 1;
+	return index + m_worldWidth - 1;
 }
 
 int Game::getDownRight(int index)
 {
-	return index + WORLD_WIDTH + 1;
+	return index + m_worldWidth + 1;
 }
 
 bool Game::isInsideGrid(unsigned int index)
@@ -238,7 +316,7 @@ bool Game::isInsideGrid(unsigned int index)
 
 bool Game::isAdjacent(int index, int target)
 {
-	return std::abs((index % WORLD_WIDTH) - (target % WORLD_WIDTH)) < 2;
+	return std::abs((index % m_worldWidth) - (target % m_worldWidth)) < 2;
 }
 
 void Game::render()

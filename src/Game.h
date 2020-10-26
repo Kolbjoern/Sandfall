@@ -6,6 +6,8 @@
 #include "utils/LoopTimer.h"
 #include "common/Color.h"
 
+#include <random>
+
 enum ParticleType : int
 {
 	Void = 0,
@@ -28,8 +30,13 @@ private:
 	void processWater(int index, int tracker[]);
 	void processStone(int index, int tracker[]);
 	bool process(unsigned int index, unsigned int target, int tracker[]);
+	void setColor(unsigned int index, sf::Color color);
+	unsigned int getIndexAtMouse();
 	int getLeft(int index);
 	int getRight(int index);
+	int getUp(int index);
+	int getUpLeft(int index);
+	int getUpRight(int index);
 	int getDown(int index);
 	int getDownLeft(int index);
 	int getDownRight(int index);
@@ -43,5 +50,9 @@ private:
 
 	LoopTimer m_loopTimer;
 
+	std::mt19937 m_randomGenerator;
+
+	int m_worldWidth;
+	int m_worldHeight;
 	float m_updateTimer;
 };
