@@ -32,18 +32,14 @@ void Game::init()
 	m_worldWidth = WINDOW_WIDTH / PIXEL_SIZE;
 	m_worldHeight = WINDOW_HEIGHT / PIXEL_SIZE;
 
-	for (int y = 0; y < m_worldHeight; y++) {
-		for (int x = 0; x < m_worldWidth; x++) {
-			sf::RectangleShape r;
-			r.setPosition(x*(PIXEL_SIZE), y*(PIXEL_SIZE));
-			r.setFillColor(Color::Black);
-			r.setSize(sf::Vector2f(PIXEL_SIZE, PIXEL_SIZE));
-			m_grid.push_back(r);
-		}
-	}
+	m_grid.init(PIXEL_SIZE, m_worldWidth, m_worldHeight);
+	
 	m_currentColor = Color::Yellow;
+	
 	m_loopTimer.init();
+	
 	m_updateTimer = 0;
+	
 	m_randomGenerator.seed(1337);
 }
 
@@ -93,20 +89,20 @@ void Game::update(float deltaTime)
 	m_updateTimer -= 0.016f;
 
 	int tracker[m_worldWidth * m_worldHeight] = {};
-	for (unsigned int i = 0; i < m_grid.size(); i++) {
-		if (m_grid[i].getFillColor() == Color::Yellow) {
+	for (unsigned int i = 0; i < m_grid.getSize(); i++) {
+		if (m_grid.getColor(i) == Color::Yellow) {
 			if (tracker[i] & ParticleType::Sand) {
 				continue;
 			}
 			processSand(i, tracker);
 		}
-		else if (m_grid[i].getFillColor() == Color::Blue) {
+		else if (m_grid.getColor(i) == Color::Blue) {
 			if (tracker[i] & ParticleType::Water) {
 				continue;
 			}
 			processWater(i, tracker);
 		}
-		else if (m_grid[i].getFillColor() == Color::Gray) {
+		else if (m_grid.getColor(i) == Color::Gray) {
 			if (tracker[i] & ParticleType::Stone) {
 				continue;
 			}
@@ -116,7 +112,7 @@ void Game::update(float deltaTime)
 
 	if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
 		unsigned int index = getIndexAtMouse();
-		if (index >= 0 && index < m_grid.size() && m_grid[index].getFillColor() == Color::Black) {
+		if (index >= 0 && index < m_grid.getSize() && m_grid.getColor(index) == Color::Black) {
 			setColor(index, m_currentColor);
 			setColor(getLeft(index), m_currentColor);
 			setColor(getRight(index), m_currentColor);
@@ -131,8 +127,8 @@ void Game::update(float deltaTime)
 
 	if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
 		unsigned int index = getIndexAtMouse();
-		if (index >= 0 && index < m_grid.size()) {
-			m_grid[index].setFillColor(Color::Black);
+		if (index >= 0 && index < m_grid.getSize()) {
+			m_grid.setColor(index, Color::Black);
 		}
 	}
 
@@ -153,8 +149,8 @@ void Game::update(float deltaTime)
 	}
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-		for (unsigned int i = 0; i < m_grid.size(); i++) {
-			m_grid[i].setFillColor(Color::Black);
+		for (unsigned int i = 0; i < m_grid.getSize(); i++) {
+			m_grid.setColor(i, Color::Black);
 		}
 	}
 }
@@ -235,16 +231,16 @@ void Game::processStone(int index, int tracker[])
 bool Game::process(unsigned int index, unsigned int target, int tracker[])
 {
 	if (isInsideGrid(target) && isAdjacent(index, target)) {
-		sf::Color color = m_grid[index].getFillColor();
-		if (m_grid[target].getFillColor() == Color::Black) {
-			m_grid[target].setFillColor(color);
-			m_grid[index].setFillColor(Color::Black);
+		sf::Color color = m_grid.getColor(index);
+		if (m_grid.getColor(target) == Color::Black) {
+			m_grid.setColor(target, color);
+			m_grid.setColor(index, Color::Black);
 			return true;
 		}
 		else if ((color == Color::Yellow || color == Color::Gray) 
-				&& m_grid[target].getFillColor() == Color::Blue) {
-			m_grid[target].setFillColor(color);
-			m_grid[index].setFillColor(Color::Blue);
+				&& m_grid.getColor(target) == Color::Blue) {
+			m_grid.setColor(target, color);
+			m_grid.setColor(index, Color::Blue);
 			processWater(index, tracker);
 			return true;
 		}
@@ -264,8 +260,8 @@ unsigned int Game::getIndexAtMouse()
 
 void Game::setColor(unsigned int index, sf::Color color)
 {
-	if (index >= 0 && index < m_grid.size() && m_grid[index].getFillColor() == Color::Black) {
-		m_grid[index].setFillColor(color);
+	if (index >= 0 && index < m_grid.getSize() && m_grid.getColor(index) == Color::Black) {
+		m_grid.setColor(index, color);
 	}
 }
 
@@ -311,7 +307,7 @@ int Game::getDownRight(int index)
 
 bool Game::isInsideGrid(unsigned int index)
 {
-	return index < m_grid.size() && index > 0;
+	return index < m_grid.getSize() && index > 0;
 }
 
 bool Game::isAdjacent(int index, int target)
@@ -322,8 +318,6 @@ bool Game::isAdjacent(int index, int target)
 void Game::render()
 {
 	m_window.clear();
-	for (unsigned int i = 0; i < m_grid.size(); i++) {
-		m_window.draw(m_grid[i]);
-	}
+	m_grid.draw(m_window);
 	m_window.display();
 }

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/rectangleShape.hpp>
 
 #include "utils/LoopTimer.h"
 #include "common/Color.h"
+#include "Grid.h"
 
 #include <random>
 
@@ -45,10 +45,10 @@ private:
 	void render();
 
 	sf::RenderWindow m_window;
-	std::vector<sf::RectangleShape> m_grid;
 	sf::Color m_currentColor;
 
 	LoopTimer m_loopTimer;
+	GridQuad m_grid;
 
 	std::mt19937 m_randomGenerator;
 
