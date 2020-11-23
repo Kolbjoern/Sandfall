@@ -4,7 +4,7 @@
 
 #include "utils/LoopTimer.h"
 #include "common/Color.h"
-#include "Grid.h"
+#include "grids/GridManager.h"
 
 #include <random>
 
@@ -48,7 +48,7 @@ private:
 	sf::Color m_currentColor;
 
 	LoopTimer m_loopTimer;
-	GridQuad m_grid;
+	GridManager m_gridManager;
 
 	std::mt19937 m_randomGenerator;
 
